@@ -1,10 +1,12 @@
 import numpy as np
-from collections import Counter
-
+import copy
 
 class Cube:
-    def __init__(self):
-        self.faces = np.array([[[i] * 3] * 3 for i in range(6)])
+    def __init__(self, faces=None):
+        if faces is None:
+            self.faces = np.array([[[i] * 3] * 3 for i in range(6)])
+        else:
+            self.faces = faces
         # self.faces = np.array(range(54)).reshape((6, 3, 3))
 
     # U, L, F, D, R, B
@@ -34,6 +36,9 @@ class Cube:
 
     def __eq__(self, other):
         return np.array_equal(self.faces, other.faces)
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def solved(self):
         solved = Cube()
@@ -136,12 +141,14 @@ class Cube:
             if show:
                 print(self)
 
-    def scramble(self, seed=None, print_scramble=False):
-        s = get_scramble(seed=seed)
+    def scramble(self, length=None, seed=None, mode='QTM', print_scramble=False, print_cube=True):
+        s = get_scramble(length=length, seed=seed, mode=mode)
         if print_scramble:
             print(s)
         self.do_sequence(s)
-        print(self)
+        if print_cube:
+            print(self)
+        return s
 
     def reward1(self):
         return 1 if self.solved() else -1
@@ -149,17 +156,17 @@ class Cube:
     def reward2(self):
         if self.solved():
             return 1
-        return 1 - sum([sum(self._U == 'W'), sum(self._L == 'O'), sum(self._F == 'G'),
-                        sum(self._R == 'R'), sum(self._B == 'B'), sum(self._D == 'Y')]) / 54
+        return sum([(self.faces[i] == i).sum() for i in range(6)]) / 54 - 1
+
+    def reward(self, i):
+        if i == 1:
+            return self.reward1()
+        if i == 2:
+            return self.reward2()
 
 
-def get_scramble(length=None, seed=None):
-    moves = np.array([["U", "U2", "U'"],
-                      ["L", "L2", "L'"],
-                      ["F", "F2", "F'"],
-                      ["D", "D2", "D'"],
-                      ["R", "R2", "R'"],
-                      ["B", "B2", "B'"]])
+def get_scramble(length=None, seed=None, mode='QTM'):
+    moves = np.array(get_moves(mode)).reshape(6, -1)
     weights = np.ones(6) / 6
     scramble = []
     if length is None:
@@ -168,7 +175,7 @@ def get_scramble(length=None, seed=None):
         np.random.seed(seed)
     for _ in range(length):
         i = np.random.choice(range(6), p=weights)
-        j = np.random.choice(range(3))
+        j = np.random.choice(range(moves.shape[1]))
         scramble.append(moves[i, j])
         weights[i] = 0
         for k in range(6):
@@ -179,5 +186,18 @@ def get_scramble(length=None, seed=None):
     return ' '.join(scramble)
 
 
-cube = Cube()
-cube.scramble(seed=1, print_scramble=True)
+def get_moves(mode='QTM'):
+    if mode == 'QTM':
+        return ['U', 'U\'',
+                'L', 'L\'',
+                'F', 'F\'',
+                'D', 'D\'',
+                'R', 'R\'',
+                'B', 'B\'']
+    elif mode == 'HTM':
+        return ['U', 'U2', 'U\'',
+                'L', 'L2', 'L\'',
+                'F', 'F2', 'F\'',
+                'D', 'D2', 'D\'',
+                'R', 'R2', 'R\'',
+                'B', 'B2', 'B\'']

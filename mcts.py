@@ -67,12 +67,12 @@ def test(model_folder, num_cubes=100, scramble_length=5, mode='QTM', max_moves=1
     return num_solved / num_cubes, np.array(sol_lengths).mean()
 
 
-def gradual_test(model_folder, num_cubes=100, mode='QTM', max_moves=100):
+def gradual_test(model_folder, num_cubes=100, mode='QTM', max_moves_factor=10):
     rates = []
     lengths = []
     scramble_length = 1
     while True:
-        rate, length = test(model_folder, num_cubes, scramble_length, mode, max_moves)
+        rate, length = test(model_folder, num_cubes, scramble_length, mode, scramble_length * max_moves_factor)
         if rate == 0:
             break
         rates.append(rate)
